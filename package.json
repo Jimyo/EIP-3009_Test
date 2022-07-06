@@ -16,10 +16,12 @@
     "@openzeppelin/contracts-upgradeable": "^4.7.0",
     "chai": "^4.3.6",
     "dotenv": "^16.0.1",
+    "ethereumjs-util": "^7.1.5",
     "hardhat": "^2.9.9",
     "hardhat-contract-sizer": "^2.6.1",
     "hardhat-gas-reporter": "^1.0.8",
     "hardhat-waffle": "^0.0.1-security",
+    "web3": "^1.7.4",
     "web3-eth-abi": "^1.7.4"
   }
 }

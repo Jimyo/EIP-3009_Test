@@ -3,6 +3,7 @@ const { ethers } = require("hardhat");
 const web3Abi = require('web3-eth-abi');
 const web3 = require('web3');
 const ethereumjs = require('ethereumjs-util');
+const { log } = require("console");
 
 
 var TRANSFER_WITH_AUTHORIZATION_TYPEHASH = web3.utils.keccak256(
@@ -63,6 +64,8 @@ describe("EIP3009", () => {
         });
 
         domainSeparator = await TokenContract.DOMAIN_SEPARATOR();
+        // console.log("[domainSeparator]", domainSeparator);
+        // console.log("[TokenContract Address]", TokenContract.address);
         nonce = web3.utils.randomHex(32);
         // const data = TRANSFER_WITH_AUTHORIZATION_TYPEHASH;
         // var signature = await owner.signMessage(ethers.utils.arrayify(data));
@@ -122,35 +125,179 @@ describe("EIP3009", () => {
             
             // console.log(ecsign(Buffer.from('ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80', 'hex'), Buffer.from('ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80', 'hex')));
             
-            console.log("[Owner]", owner);
-            const SignData = "ef530f860cd8b844464424a71f46ef7d5e5e40e35b50f63c641d79343fff5fb4";
-            var signature = await owner.signMessage(ethers.utils.arrayify( "0x1901" +SignData));
-            console.log("[signature]", signature);
-            let sig = ethers.utils.splitSignature(signature);
-            console.log("[sig]", sig.v, sig.r, sig.s);
+            const newData = {
+                types: {
+                  EIP712Domain: [
+                    { name: "name", type: "string" },
+                    { name: "version", type: "string" },
+                    { name: "chainId", type: "uint256" },
+                    { name: "verifyingContract", type: "address" },
+                  ],
+                  TransferWithAuthorization: [
+                    { name: "from", type: "address" },
+                    { name: "to", type: "address" },
+                    { name: "value", type: "uint256" },
+                    { name: "validAfter", type: "uint256" },
+                    { name: "validBefore", type: "uint256" },
+                    { name: "nonce", type: "bytes32" },
+                  ],
+                },
+                domain: {
+                  name: "TestToken",
+                  version: "1",
+                  chainId: 1,
+                  verifyingContract: TokenContract.address,
+                },
+                primaryType: "TransferWithAuthorization",
+                message: {
+                  from: ownerAddress,
+                  to: bobAddress,
+                  value: value,
+                  validAfter: validAfter,
+                  validBefore: validBefore, // Valid for an hour
+                  nonce: nonce,
+                },
+              };
 
-            const { v, r, s } = ethereumjs.ecsign(Buffer.from(SignData, 'hex'), Buffer.from("ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", 'hex'));
-            console.log("[ecsign]", v, "0x" + r.toString("hex"), "0x" + s.toString("hex"));
-            const ECsignature = ethereumjs.toRpcSig(v, r, s );
-            console.log("[ECsignature]", ECsignature);
+              // console.log(newData.domain);
+              
+            // const permission = await ethers.provider
+            //     .getSigner(ownerAddress)
+            //     ._signTypedData(newData.domain, newData.types, newData.value);
 
+            var ooo = await ethers.getSigner(ownerAddress);
+            // console.log("[幹你老師]", ooo.provider);
+
+            let abc = 
+            await ooo.provider.send("eth_signTypedData_v4",[ownerAddress,JSON.stringify(newData)]);
+              console.log("json", newData.message);
+            console.log("asd", abc);
+            console.log("ownerAddress", ownerAddress);
+            console.log("TokenContract.address",TokenContract.address);
+            // {
+            //   jsonrpc: '2.0',
+            //   method: 'eth_signTypedData_v4',
+            //   params: [ownerAddress, JSON.stringify(newData)],
+            //   }, (e, r) =>{
+            //       if(e)
+            //       {
+            //           // reject(e);
+            //       }else
+            //       {
+            //         console.log("r.result", r.result);
+            //           // resolve(r.result);
+            //       }
+            //   }
+            // return;
+            // var aaa = await ooo._signTypedData(newData.domain, newData.types, newData.message);
             
-            console.log(ethers.utils.verifyMessage(ethers.utils.arrayify("0x" +SignData), signature));
-            console.log(ethers.utils.verifyMessage(ethers.utils.arrayify("0x" +SignData), ECsignature));
+            // console.log("[C Sign]]", aaa);
 
-            return;
+            const testSign = ethers.utils.splitSignature(abc);
+            console.log("[testSign]",  testSign);
+//             const Tv = parseInt("0x" + aaa.slice(130, 132), 16);
+//             const Tr = aaa.slice(0, 66);
+//             const Ts = "0x" + aaa.slice(66, 130);
+//             const Nv = parseInt(aaa.substring(128, 130), 16);
+//             const Nr =  aaa.substring(0, 64);
+//             const Ns = "0x" + aaa.substring(64, 128);
+            
+// console.log("[New VRS]", Nv, Nr, Ns);
+// console.log("[T VRS]", parseInt(Tv, 16), Tr, Ts);
+// return;
+            // const newSignature = await ethereum.request({
+            //   method: "eth_signTypedData_v4",
+            //   params: [ownerAddress, JSON.stringify(newData)],
+            // });
+            // const domain = {
+            //     name: 'TestToken',
+            //     version: '1',
+            //     chainId: 1,
+            //     verifyingContract: TokenContract.address
+            // };
+            
+            // // The named list of all type definitions
+            // //TransferWithAuthorization(address from,address to,uint256 value,uint256 validAfter,uint256 validBefore,bytes32 nonce)
+            // const types = {
+            //     TransferWithAuthorization: [
+            //         { name: 'from', type: 'address' },
+            //         { name: 'to', type: 'address' },
+            //         { name: 'value', type: 'uint256' },
+            //         { name: 'validAfter', type: 'uint256' },
+            //         { name: 'validBefore', type: 'uint256' },
+            //         { name: 'nonce', type: 'bytes32' }
+            //     ]
+            // };
+            
+            // // The data to sign
+            // const value2 = {
+            //     message: {
+            //         from: ownerAddress,
+            //         to: bobAddress,
+            //         value: 555,
+            //         validAfter: 0,
+            //         validBefore: Math.floor(Date.now() / 1000) + 3600, // Valid for an hour
+            //         nonce: web3.utils.randomHex(32),
+            //       },
+            // };
+
+            // const domain = {
+            //     name: 'TestToken',
+            //     version: '1',
+            //     chainId: 1,
+            //     verifyingContract: TokenContract.address
+            // };
+            
+            // // The named list of all type definitions
+            // const types = {
+            //     TransferWithAuthorization: [
+            //         { name: 'from', type: 'address' },
+            //         { name: 'to', type: 'address' },
+            //         { name: 'value', type: 'uint256' },
+            //         { name: 'validAfter', type: 'uint256' },
+            //         { name: 'validBefore', type: 'uint256' },
+            //         { name: 'nonce', type: 'bytes32' }
+            //     ]
+            // };
+            
+            // // The data to sign
+            // const value2 = {
+            //     from: ownerAddress,
+            //     to: bobAddress,
+            //     value: 555,
+            //     validAfter: 0,
+            //     validBefore: Math.floor(Date.now() / 1000) + 3600, // Valid for an hour
+            //     nonce: web3.utils.randomHex(32),
+            // };
+
+            // const newSignature = await owner._signTypedData(domain, types, value2);
+
+            // console.log("[newSignature]", newSignature);
+            // let newSig = ethers.utils.splitSignature(newSignature);
+            // console.log("[newSig]", newSig);
+
+            // return;
 
 
-            // var {result, data}  = await signTransferAuthorizationTest(
-            //     from,
-            //     to,
-            //     value,
-            //     validAfter,
-            //     validBefore,
-            //     nonce,
-            //     domainSeparator,
-            //     owner
-            //   );
+            // const SignData = "ef530f860cd8b844464424a71f46ef7d5e5e40e35b50f63c641d79343fff5fb4";
+            // var signature = await owner.signMessage(ethers.utils.arrayify( "0x1901" +SignData));
+            // console.log("[signature]", signature);
+            // let sig = ethers.utils.splitSignature(signature);
+            // console.log("[sig]", sig.v, sig.r, sig.s);
+
+            // const { v, r, s } = ethereumjs.ecsign(Buffer.from(SignData, 'hex'), Buffer.from("ac0974bec39a17e36ba4a6b4d238ff944bacb478cbed5efcae784d7bf4f2ff80", 'hex'));
+            // console.log("[ecsign]", v, "0x" + r.toString("hex"), "0x" + s.toString("hex"));
+            // const ECsignature = ethereumjs.toRpcSig(v, r, s );
+            // // console.log("[pubToAddress]",ethereumjs.pubToAddress(Buffer.from(ownerAddress.substring(2), 'hex')));
+            // console.log("[ECsignature]", ECsignature);
+            // console.log("[OwnerAddress]", ownerAddress);
+
+            // console.log(ethers.utils.verifyMessage(ethers.utils.arrayify("0x1901" +SignData), signature));
+            // console.log(ethers.utils.verifyMessage(ethers.utils.arrayify("0x" +SignData), ECsignature));
+
+            // return;
+
+            console.log("===================");
 
             // console.log("[Result]",result);
             // console.log("[Data]", data);
@@ -161,7 +308,6 @@ describe("EIP3009", () => {
             // const v = parseInt(result.substring(128, 130), 16);
             // const r = "0x" + result.substring(0, 64);
             // const s = "0x" + result.substring(64, 128);
-            // console.log("[1]" ,result.v,result.r,result.s);
 
             const { v2, r2, s2 }  = signTransferAuthorization(
                 from,
@@ -202,7 +348,7 @@ describe("EIP3009", () => {
                 r2,
                 s2
               );
-              console.log(resulta.data);
+              // console.log(resulta.data);
 
             // const data = TRANSFER_WITH_AUTHORIZATION_TYPEHASH;
             // console.log(data);
@@ -284,24 +430,9 @@ function signTransferAuthorization(
         )
     );
   
-    console.log("[舊的的D]",digest);
-    console.log("0x1901" +
-    strip0x(domainSeparator) +
-    strip0x(
-      web3.utils.keccak256(
-        web3Abi.encodeParameters(
-          ["bytes32", ...types],
-          [typeHash, ...parameters]
-        )
-      )
-    ));
-            // console.log("[v]", parseInt(signature.substring(128, 130), 16));
-        // console.log("[r]", "0x"+ signature.substring(0, 64));
-        // console.log("[s]", "0x" + signature.substring(64, 128));
-    // return {v:parseInt(signature.substring(128, 130), 16)  };
-    // console.log("[signEIP712 privateKey]", privateKey);
-    // console.log("[舊的的sig]", ecsign(Buffer.from(digest.substring(2), 'hex'), Buffer.from(privateKey.substring(2), 'hex')));
+    // const sign = ethereumjs.ecsign(Buffer.from(digest.substring(2), 'hex'), Buffer.from(privateKey.substring(2), 'hex'));
     const { v, r, s } = ethereumjs.ecsign(Buffer.from(digest.substring(2), 'hex'), Buffer.from(privateKey.substring(2), 'hex'));
+    console.log("[sign]", v.toString(16));
     return { v2:v, r2: "0x" + r.toString("hex"), s2: "0x" + s.toString("hex") };
   }
 
@@ -317,6 +448,41 @@ function signTransferAuthorization(
     domainSeparator,
     owner
   ) {
+
+    // const domain = {
+    //     name: 'TestToken',
+    //     version: '1',
+    //     chainId: 1,
+    //     verifyingContract: "0x5FbDB2315678afecb367f032d93F642f64180aa3"
+    // };
+    
+    // // The named list of all type definitions
+    // const types = {
+    //     TransferWithAuthorization: [
+    //         { name: 'from', type: 'address' },
+    //         { name: 'to', type: 'address' },
+    //         { name: 'value', type: 'uint256' },
+    //         { name: 'validAfter', type: 'uint256' },
+    //         { name: 'validBefore', type: 'uint256' },
+    //         { name: 'nonce', type: 'bytes32' }
+    //     ]
+    // };
+    
+    // // The data to sign
+    // const value2 = {
+    //     from: from,
+    //     to: to,
+    //     value: value,
+    //     validAfter: validAfter,
+    //     validBefore: validBefore, // Valid for an hour
+    //     nonce: nonce,
+    // };
+
+    // const newSignature = await owner._signTypedData(domain, types, value2);
+    // let sig = ethers.utils.splitSignature(newSignature);
+    // console.log();
+    // return sig;
+
     return await signEIP712Test(
         domainSeparator,
         TRANSFER_WITH_AUTHORIZATION_TYPEHASH,
@@ -333,47 +499,42 @@ function signTransferAuthorization(
     parameters,
     owner
   ) {
-    // const digest = web3.utils.keccak256(
-    //   "0x1901" +
-    //     strip0x(domainSeparator) +
-    //     strip0x(
-    //       web3.utils.keccak256(
-    //         web3Abi.encodeParameters(
-    //           ["bytes32", ...types],
-    //           [typeHash, ...parameters]
-    //         )
-    //       )
-    //     )
-    // );
-
-    const digest = ethers.utils.id(
-        "0x1901" +
-          strip0x(domainSeparator) +
-          strip0x(
-            web3.utils.keccak256(
-              web3Abi.encodeParameters(
-                ["bytes32", ...types],
-                [typeHash, ...parameters]
-              )
+    const digest = web3.utils.keccak256(
+      "0x1901" +
+        strip0x(domainSeparator) +
+        strip0x(
+          web3.utils.keccak256(
+            web3Abi.encodeParameters(
+              ["bytes32", ...types],
+              [typeHash, ...parameters]
             )
           )
-      );
+        )
+    );
+
+    // const digest = ethers.utils.id(
+    //     "0x1901" +
+    //       strip0x(domainSeparator) +
+    //       strip0x(
+    //         web3.utils.keccak256(
+    //           web3Abi.encodeParameters(
+    //             ["bytes32", ...types],
+    //             [typeHash, ...parameters]
+    //           )
+    //         )
+    //       )
+    //   );
 
     
-    let flatSig = await owner.signMessage(ethers.utils.arrayify(digest))
+
+
+    
+    let flatSig = await owner.signMessage(Buffer.from(digest.substring(2)));
     let sig = ethers.utils.splitSignature(flatSig);
     console.log("[新的D]",digest);
-    console.log("0x1901" +
-    strip0x(domainSeparator) +
-    strip0x(
-      web3.utils.keccak256(
-        web3Abi.encodeParameters(
-          ["bytes32", ...types],
-          [typeHash, ...parameters]
-        )
-      )
-    ));
-    // console.log("[新的sig]", sig);
+    console.log("[新的sig]", flatSig);
+    console.log("[新的驗證]",ethers.utils.verifyMessage(Buffer.from(digest.substring(2)), flatSig));
+    console.log("[Owner Address]", owner.address);
     return { result :sig, data : digest};
     console.log(privateKey);
     const { v, r, s } = ecsign(Buffer.from(digest.substring(2), 'hex'), Buffer.from(privateKey.substring(2), 'hex'));

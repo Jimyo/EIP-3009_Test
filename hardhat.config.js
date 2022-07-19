@@ -33,7 +33,8 @@ module.exports = {
   defaultNetwork: 'hardhat',
   networks: 
   {
-    hardhat: {},
+    hardhat: {
+    },
     mumbai: 
     {
        url: process.env.POLYGON_MUMBAI_RPC_PROVIDER,
